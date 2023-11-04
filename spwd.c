@@ -6,14 +6,17 @@
 
 char* currentPath(short* len);
 short terminalWidth();
+bool isHelp(char* arg);
 void printShort(short* plen, char* path, short deltaLen);
 
 int main(int argc, char *argv[]) {
     short alen = 0, plen = 0;  //Init len vars
     char* cpath = currentPath(&plen);  //Get current path and its lenght
 
-    if (argc > 1) alen = atoi(argv[1]);  //Get aviable len (if exists)
-    else alen = terminalWidth();
+    if (argc > 1) {
+        if (!isHelp(argv[1])) alen = atoi(argv[1]);  //Get aviable len (if exists)
+        else return 0;
+    } else alen = terminalWidth();  //Set the terminal widht if it is not a help exec
 
     /* check for the ability to write the path in the available len */
     if (plen <= alen) printf(cpath);  //Print default path
@@ -32,6 +35,18 @@ short terminalWidth() {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     return w.ws_col;
+}
+
+bool strcomp(char* str1, char* str2) {
+    for (short i = 0; str1[i] != '\0' || str2[i] != '\0'; i++)
+        if (str1[i] != str2[i]) return false;
+    return true;
+}
+
+bool isHelp(char* arg) {
+    if (!strcomp(arg, "-h") && !strcomp(arg, "--help")) return false;
+    printf("Usage:\n    spwd <max width>\nExample:\n    spwd 123");
+    return true;
 }
 
 /* Get all titles' lenght */
