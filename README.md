@@ -6,7 +6,7 @@
 
 # SPWD
 ### Description
-"spwd" (short for "Short Present Working Directory") is a program for presenting the current working directory within the width of the terminal. This can be used in the prompts of shells, like bash, zsh, fish, etc. to maintain their beautiful appearance
+"spwd" (short for "Short Present Working Directory") is a program for presenting the current working directory within the width of the terminal. This can be used in the shell prompts, like bash, zsh, fish, etc. to maintain their beautiful appearance
 
 ### Usage
 ```BASH
