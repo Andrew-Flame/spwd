@@ -34,8 +34,14 @@ PROMPT=$'%F{blue}($USER@$HOST)-[%F{white}$(spwd $(get_aviable_width))%F{blue}] $
 ```
 
 ### Installation
+#### Manual
 To install the program, just copy the code and paste it into the terminal
 ```BASH
 git clone https://github.com/Andrew-Flame/spwd.git /tmp/spwd
 cd /tmp/spwd && sudo make clean install
+```
+#### AUR
+You can find this package by [link](https://aur.archlinux.org/packages/spwd)
+```BASH
+pacaur -S spwd
 ```
