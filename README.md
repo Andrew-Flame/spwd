@@ -23,14 +23,14 @@ spwd <width>
 ##### Two-line zsh prompt
 ![](https://github.com/Andrew-Flame/spwd/assets/82677442/acb0d654-457c-4950-b388-d5655b06bbeb)
 ```BASH
-get_aviable_width() { expr $(tput cols) - ${#USER} - ${#HOST} - 10 }
-PROMPT=$'%F{blue}┌──($USER@$HOST)-[%F{white}$(spwd $(get_aviable_width))%F{blue}]\n└─$suffix%f '
+get_available_width() { expr $(tput cols) - ${#USER} - ${#HOST} - 10; }
+PROMPT=$'%F{blue}┌──($USER@$HOST)-[%F{white}$(spwd $(get_available_width))%F{blue}]\n└─$suffix%f '
 ```
 ##### One-line zsh prompt
 ![](https://github.com/Andrew-Flame/spwd/assets/82677442/a7af28ac-a7bf-4e06-916b-7029b9c056e4)
 ```BASH
-get_aviable_width() { expr $(expr $(tput cols) - ${#USER} - ${#HOST} - 10) / 2 }
-PROMPT=$'%F{blue}($USER@$HOST)-[%F{white}$(spwd $(get_aviable_width))%F{blue}] $suffix%f '
+get_available_width() { expr \( $(tput cols) - ${#USER} - ${#HOST} - 10 \) / 2; }
+PROMPT=$'%F{blue}($USER@$HOST)-[%F{white}$(spwd $(get_available_width))%F{blue}] $suffix%f '
 ```
 
 ### Installation
