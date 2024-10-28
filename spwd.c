@@ -32,7 +32,7 @@ int max_width = 0;
 /* Get the terminal width and use it as a default width */
 void set_max_width() {
     struct winsize w;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    ioctl(0, TIOCGWINSZ, &w);
     max_width = w.ws_col;
 }
 
