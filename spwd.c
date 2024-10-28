@@ -87,6 +87,17 @@ void set_physical_dir() { path = getcwd(0, 0); }
 void set_logical_dir() { path = getenv("PWD"); }
 
 void print_working_dir() {
+    /* Get the nesting level */
+    int nest_level = 0;
+    for (const char* path_ptr = path; *path_ptr != '\0'; path_ptr++)
+        if (*path_ptr == '/') nest_level++;
+
+    /* If we have very few directories, print the original data and exit */
+    if (nest_level <= 3) {
+        printf(path);
+        return;
+    }
+
     /* Get the current directory size */
     int path_sz = strlen(path);
 
