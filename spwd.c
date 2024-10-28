@@ -1,111 +1,160 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdbool.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdio.h>
 
-char* currentPath(short* len);
-short terminalWidth();
-bool isHelp(char* arg);
-void printShort(short* plen, char* path, short deltaLen);
+#define HELP_DATA \
+"NAME:\n"\
+"\tspwd - Short Print Working Directory\n\n"\
+"DESCRIPTION:\n"\
+"\tPrint the name of the current working directory, \n"\
+"\tshortening where possible to match the required output width\n\n"\
+"USAGE:\n"\
+"\tspwd [arguments]\n\n"\
+"ARGUMENTS:\n"\
+"\t-w, --width\n"\
+"\t\tOutput width. Uses the terminal width, if not declared\n"\
+"\t-s, --subtract\n"\
+"\t\tSubtract the required number of characters from the output width\n"\
+"\t-L, --logical\n"\
+"\t\tUse the PWD environment variable, even if it contains symlinks\n"\
+"\t-P, --physical\n"\
+"\t\tPrint the directory name without symlinks\n"\
+"\t-h, --help\n"\
+"\t\tDisplay this help and exit"
 
-int main(int argc, char *argv[]) {
-    short alen = 0, plen = 0;  //Init len vars
-    char* cpath = currentPath(&plen);  //Get current path and its lenght
+const char* path = NULL;
+bool physical_pwd = false;
+int max_width = 0;
 
-    if (argc > 1) {
-        if (!isHelp(argv[1])) alen = atoi(argv[1]);  //Get aviable len (if exists)
-        else return 0;
-    } else alen = terminalWidth();  //Set the terminal widht if it is not a help exec
-
-    /* check for the ability to write the path in the available len */
-    if (plen <= alen) printf(cpath);  //Print default path
-    else printShort(&plen, cpath, plen - alen);  //Print short path
-
-    return 0;
-}
-
-char* currentPath(short* len) {
-    char* buffer = getenv("PWD");  //Get current path
-    for (*len = 0; buffer[*len] != '\0'; (*len)++) { }  //Get path len
-    return buffer;
-}
-
-short terminalWidth() {
+/* Get the terminal width and use it as a default width */
+void set_max_width() {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    return w.ws_col;
+    max_width = w.ws_col;
 }
 
-bool strcomp(char* str1, char* str2) {
-    for (short i = 0; str1[i] != '\0' || str2[i] != '\0'; i++)
-        if (str1[i] != str2[i]) return false;
-    return true;
-}
+void handle_args(char const* const* arg_ptr, char const* const* const arg_end) {
+    /* Check all arguments */
+    while (++arg_ptr < arg_end) {
+        /* Get flags only */
+        if ((*arg_ptr)[0] != '-') continue;
 
-bool isHelp(char* arg) {
-    if (!strcomp(arg, "-h") && !strcomp(arg, "--help")) return false;
-    printf("Usage:\n    spwd <max width>\nExample:\n    spwd 123");
-    return true;
-}
-
-/* Get all titles' lenght */
-short* titleLenghts(char* path, short* size) {
-    short* buffer = (short*)malloc(512 * sizeof(short));
-    for (short i = 0, slcounter = 0, counter = 0, clen = 0; path[i] != '\0'; i++) {
-        if (path[i] == '/') {
-            slcounter++;
-            if (slcounter > 3) (counter)++;
-            *size = counter + 1;
-            buffer[counter] = clen;
-            clen = 0;
+        /* Handle flag according to its type ('-' or '--')) */
+        if ((*arg_ptr)[1] == '-') {  //Flag type: '--'
+            if (strcmp(*arg_ptr + 2, "width") == 0 && arg_ptr + 1 != arg_end) 
+                max_width = atoi(*(arg_ptr + 1));  //Width argument
+            else if (strcmp(*arg_ptr + 2, "subtract") == 0 && arg_ptr + 1 != arg_end) 
+                max_width -= atoi(*(arg_ptr + 1));  //Subtract argument
+            else if (strcmp(*arg_ptr + 2, "logical") == 0) physical_pwd = false;  //Logical argument
+            else if (strcmp(*arg_ptr + 2, "physical") == 0) physical_pwd = true;  //Physical argument
+            else if (strcmp(*arg_ptr + 2, "help") == 0) {  //Help argument
+                printf(HELP_DATA);
+                exit(0);
+            }
             continue;
         }
-        clen++;
-    }
-    buffer = realloc(buffer, *size);
-    return buffer;
-}
-
-bool* excludeTitles(short size, short* lens, short delta) {
-    bool* buffer = (bool*)malloc(size * sizeof(bool));
-
-    short first = 0, last = 0;
-    for (short i = 0, max = 0; i < size; i++) {
-        for (short j = i, csum = 0; j < size; j++) {
-            csum += lens[j];
-            if (csum > max && csum <= delta) {
-                max = csum;
-                first = i;
-                last = j;
-            }
+        
+        /* Flag type: '-' */
+        switch ((*arg_ptr)[1]) {
+            case 'w':  //Width argument
+                /* Get the output width if exists */
+                if (arg_ptr + 1 != arg_end)
+                    max_width = atoi(*(arg_ptr + 1));
+                continue;
+            case 's':  //Subtract argument
+                /* Subtract the number of chars if exists */
+                if (arg_ptr + 1 != arg_end)
+                    max_width -= atoi(*(arg_ptr + 1));
+                continue;
+            case 'L':  //Logical argument
+                physical_pwd = false;
+                continue;
+            case 'P':  //Physical argument
+                physical_pwd = true;
+                continue;
+            case 'h':  //Help argument
+                printf(HELP_DATA);
+                exit(0);
         }
     }
-
-    for (int i = first; i <= last; i++) buffer[i] = true;
-    return buffer;
 }
 
-void printShort(short* plen, char* path, short deltaLen) {
-    deltaLen += 5;  //Special for "..." symbols
-    short tlsize; short* tlens = titleLenghts(path, &tlsize);
-    if (tlsize <= 1) {
+void set_physical_dir() { path = getcwd(0, 0); }
+
+void set_logical_dir() { path = getenv("PWD"); }
+
+void print_working_dir() {
+    /* Get the current directory size */
+    int path_sz = strlen(path);
+
+    /* Get the difference between the maximum output width and the directory size */
+    int size_delta = path_sz - max_width;
+
+    /* If the size of the current directory is less than the maximum, just print it */
+    if (size_delta <= 0) {
         printf(path);
         return;
     }
 
-    bool* excludes = excludeTitles(tlsize, tlens, deltaLen);
-    bool placeholdered = false;
+    /* Get the number of characters to replace to "/..." */
+    size_delta += 4;
 
-    for (short i = 0, slcounter = 0; path[i] != '\0'; i++) {
-        if (path[i] == '/') slcounter++;
-        if (excludes[slcounter - 2]) {
-            if (!placeholdered) {
-                printf("/...");  //Print placeholder
-                placeholdered = true;
-            }
-            continue;
-        }
-        putchar(path[i]);
+    /* Get the pointer to the replaceble part of the path */
+    char* const path_replaceable = strchr(strchr(path + 1, '/') + 1, '/');
+    char* path_replaceable_ptr = path_replaceable;
+
+    /* Get the pointer to the last immutable part of the path */
+    char* const path_end = strrchr(path_replaceable_ptr, '/');
+
+    /* Decalare vars for the replace pointer and the replace size */
+    char* replace_part = NULL;
+    int replace_size = 2147483647;
+
+    /* Cycle through all possible ways to shorten the path */
+    do {
+        /* Get pointer to the first possible shortening end */
+        char const* const path_replaceable_end = strchr(path_replaceable_ptr + size_delta, '/');
+
+        /* If the pointer is too big, there isn't any shortenings anymore */
+        if (path_replaceable_end == NULL || path_replaceable_end > path_end) break;
+
+        /* Eval the current replacable part size */
+        const int cur_size = path_replaceable_end - path_replaceable_ptr;
+
+        /* If it is the worse way, continue finding */
+        if (cur_size >= replace_size) continue;
+
+        /* If it is the better way, replace the old one */
+        replace_part = path_replaceable_ptr;
+        replace_size = cur_size;
+    } while ((path_replaceable_ptr = strchr(path_replaceable_ptr + 1, '/')) < path_end);
+
+    /* Print the result */
+    if (replace_part == NULL) {
+        path_replaceable[0] = '\0';
+        printf("%s/...%s", path, path_end);
     }
+    else {
+        replace_part[0] = '\0';
+        printf("%s/...%s", path, replace_part + replace_size);
+    }
+}
+
+int main(const int arg_c, char const* const* arg_ptr) {
+    /* Set the output width */
+    set_max_width();
+
+    /* Handle arguments (if exist) */
+    if (arg_c > 1) handle_args(arg_ptr, arg_ptr + arg_c);
+
+    /* Set the current working directory */
+    if (physical_pwd) set_physical_dir();
+    else set_logical_dir();
+
+    /* Format and print the current working directory */
+    print_working_dir();
+    return 0;
 }
