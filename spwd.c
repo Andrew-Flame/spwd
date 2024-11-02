@@ -14,9 +14,9 @@
 "USAGE:\n"\
 "\tspwd [arguments]\n\n"\
 "ARGUMENTS:\n"\
-"\t-w, --width\n"\
+"\t-w, --width <num>\n"\
 "\t\tOutput width. Uses the terminal width, if not declared\n"\
-"\t-s, --subtract\n"\
+"\t-s, --subtract <num>\n"\
 "\t\tSubtract the required number of characters from the output width\n"\
 "\t-L, --logical\n"\
 "\t\tUse the PWD environment variable, even if it contains symlinks\n"\
